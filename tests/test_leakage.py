@@ -77,3 +77,13 @@ def test_roll_std_7_on_named_date(feats):
     expected = statistics.stdev(prior_week)                  # 392.3098
     value = feats.set_index("dteday").loc[pd.Timestamp("2011-06-15"), "cnt_roll_std_7"]
     assert value == pytest.approx(expected)
+
+
+def test_weather_encoder_rejects_unknown_labels():
+    """The checked-in CSV only has GOOD / MISTY / BAD, so the row-loss bound
+    cannot see a missing guard in encode_weather: nothing goes NaN. Feed it
+    a label it has never seen and require a loud failure, not a silent NaN."""
+    from src.features import encode_weather
+
+    with pytest.raises(ValueError, match="unmapped weather labels"):
+        encode_weather(pd.Series(["GOOD", "SNOW", "BAD"]))

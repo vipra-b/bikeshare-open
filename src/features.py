@@ -24,6 +24,10 @@ def encode_weather(series: pd.Series) -> pd.Series:
     days -- the most interesting days in the dataset -- disappear with no
     error and no warning.
     """
+    known = series.dropna()
+    unknown = set(known.unique()) - set(WEATHER_ORDER)
+    if unknown:
+        raise ValueError(f"unmapped weather labels: {sorted(unknown)}")
     return series.map(WEATHER_ORDER).astype(float)
 
 
