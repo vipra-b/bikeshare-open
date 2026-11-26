@@ -64,3 +64,16 @@ def test_no_missing_values(feats):
 def test_dates_are_sorted_and_unique(feats):
     assert feats.dteday.is_monotonic_increasing
     assert feats.dteday.is_unique
+
+
+def test_roll_std_7_on_named_date(feats):
+    """cnt_roll_std_7 on 2011-06-15 must be the sample std (ddof=1) of cnt on
+    2011-06-08 .. 2011-06-14, the seven calendar days strictly before it.
+    The counts are typed in by hand from data/raw/bike_daily.csv so the test
+    does not trust the same pandas call the feature uses."""
+    import statistics
+
+    prior_week = [4401, 3915, 4586, 4966, 4460, 5020, 4891]  # 06-08 .. 06-14
+    expected = statistics.stdev(prior_week)                  # 392.3098
+    value = feats.set_index("dteday").loc[pd.Timestamp("2011-06-15"), "cnt_roll_std_7"]
+    assert value == pytest.approx(expected)
