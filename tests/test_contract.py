@@ -3,7 +3,8 @@ import pandas as pd
 import pytest
 from sklearn.metrics import r2_score
 
-from src.config import LAG_WARMUP, TARGET
+from src.config import (DATE_COL, ENCODED_COLS, FORBIDDEN, LAG_WARMUP, RAW,
+                        RAW_FEATURE_COLS, REDUNDANT_CALENDAR_COLS, TARGET)
 from src.features import build_features, feature_columns, reindex_to_calendar
 from src.ingest import load_raw
 from src.train import MODELS, temporal_split
@@ -56,3 +57,19 @@ def test_persistence_baseline_is_reported():
     """The baseline that matters for a lag-driven model is 'yesterday again'.
     It must be in the comparison, whatever its score."""
     assert "baseline_persistence" in MODELS
+
+
+def test_every_raw_column_is_classified():
+    """A column appended to data/raw/bike_daily.csv must not enter silently.
+    feature_columns() is a denylist, so any new numeric column would become
+    a feature with no review. Every raw column has to be forbidden, a
+    hand-listed raw feature, an encoded label, a redundant calendar label,
+    or the date. The classification is read from src/config.py, never from
+    feature_columns(), which would classify the new column as a feature."""
+    raw_cols = set(pd.read_csv(RAW, nrows=0).columns)
+    classified = (FORBIDDEN | RAW_FEATURE_COLS | ENCODED_COLS
+                  | REDUNDANT_CALENDAR_COLS | {DATE_COL})
+    unclassified = raw_cols - classified
+    assert not unclassified, (
+        f"unclassified raw columns {sorted(unclassified)}: add each to a set "
+        "in src/config.py with the reason")
