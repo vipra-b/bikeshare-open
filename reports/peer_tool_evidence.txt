@@ -1,0 +1,82 @@
+Actual successful named-reviewer execution evidence. Original teammate commit334fc3f.
+
+$ python -m pytest -v 2>&1 | head -150
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.1.1, pluggy-1.7.0 -- /Users/kavyanpatel/Documents/Codex/2026-11-25/ok/work/bikeshare-open/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/kavyanpatel/Documents/Codex/2026-11-25/ok/work/teammate-audit
+plugins: anyio-4.16.0
+collecting ... collected 18 items
+
+tests/test_contract.py::test_calendar_is_complete_before_lagging PASSED  [  5%]
+tests/test_contract.py::test_only_expected_rows_are_dropped PASSED       [ 11%]
+tests/test_contract.py::test_beats_the_mean_baseline PASSED              [ 16%]
+tests/test_contract.py::test_persistence_baseline_is_reported PASSED     [ 22%]
+tests/test_contract.py::test_every_raw_column_is_classified PASSED       [ 27%]
+tests/test_contract.py::test_raw_data_is_unmodified PASSED               [ 33%]
+tests/test_leakage.py::test_leakage_identity_holds PASSED                [ 38%]
+tests/test_leakage.py::test_no_forbidden_features PASSED                 [ 44%]
+tests/test_leakage.py::test_lags_are_true_calendar_lags PASSED           [ 50%]
+tests/test_leakage.py::test_lag_is_not_the_target PASSED                 [ 55%]
+tests/test_leakage.py::test_rolling_mean_excludes_today PASSED           [ 61%]
+tests/test_leakage.py::test_no_missing_values PASSED                     [ 66%]
+tests/test_leakage.py::test_dates_are_sorted_and_unique PASSED           [ 72%]
+tests/test_leakage.py::test_roll_std_7_on_named_date PASSED              [ 77%]
+tests/test_leakage.py::test_weather_encoder_rejects_unknown_labels PASSED [ 83%]
+tests/test_split.py::test_splits_non_empty PASSED                        [ 88%]
+tests/test_split.py::test_splits_are_ordered_in_time PASSED              [ 94%]
+tests/test_split.py::test_no_overlapping_dates PASSED                    [100%]
+
+============================== 18 passed in 2.98s ==============================
+
+$ python -m src.features && python -m src.train
+OK features: 714 rows, 15 features -> features.parquet
+  temp, atemp, hum, windspeed, dayofweek, is_weekend, is_holiday, is_workday, month_sin, month_cos, weather_severity, cnt_lag_1, cnt_lag_7, cnt_roll_7, cnt_roll_std_7
+{
+  "n_features": 15,
+  "n_train": 348,
+  "n_valid": 182,
+  "n_test": 184,
+  "baseline_mean": {
+    "valid": {
+      "r2": -0.9318,
+      "mae": 2002.2
+    },
+    "test": {
+      "r2": -2.1441,
+      "mae": 2847.7
+    }
+  },
+  "baseline_persistence": {
+    "valid": {
+      "r2": 0.4507,
+      "mae": 900.6
+    },
+    "test": {
+      "r2": 0.5099,
+      "mae": 840.1
+    }
+  },
+  "ridge": {
+    "valid": {
+      "r2": 0.7224,
+      "mae": 700.4
+    },
+    "test": {
+      "r2": 0.6356,
+      "mae": 840.3
+    }
+  },
+  "hgb": {
+    "valid": {
+      "r2": 0.0977,
+      "mae": 1381.6
+    },
+    "test": {
+      "r2": -0.6959,
+      "mae": 2108.4
+    }
+  }
+}
+
+Provenance correction: no make data / python -m src.ingest command appears in this successful reviewer transcript. The raw final response claims all three stages, but the executed pipeline command covers features and train only. Independent make all evidence is in validation-evidence.txt.
