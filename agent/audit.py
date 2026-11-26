@@ -22,6 +22,7 @@ import asyncio
 import json
 import os
 import sys
+from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any
 
@@ -111,6 +112,20 @@ Report only findings that change a number or invalidate a conclusion.
 Do not edit source or raw data, tune models, or invoke transformed
 --touch-test runs. Inspect the saved transformed output instead.
 
+Use a short evidence-first workflow, rather than exploring the history:
+  - Run `make all test` once in Bash to verify the complete pipeline and
+    tests. Do not repeat test collection or read dependency/setup files
+    unless that command fails.
+  - Batch reads of src/config.py, src/features.py, src/train.py,
+    reports/metrics.json, reports/target_transform_ratio.json and REPORT.md.
+    These contain the current feature contract, splits, fits, scores and
+    interpretation. Read additional source only to resolve a specific gap.
+  - Call mcp__audit__check_identity on data/processed/features.parquet,
+    target cnt, using exactly the features list in reports/metrics.json.
+  - Then return the schema result. Do not inspect historical commits or
+    spend turns reconciling documentation test counts. Record uncertainty
+    or material findings honestly; a clean verdict is not required.
+
 Your final answer is a single JSON object matching the schema you were
 given. No prose around it.
 """
@@ -179,7 +194,15 @@ async def audit_repo(repo: Path) -> dict[str, Any]:
     # intermediate TextBlock ("Let me look at config.py first...") and
     # json.loads-ing the lot fails on the first repo that thinks out loud.
     final: ResultMessage | None = None
+    trace_path = os.environ.get("AUDIT_TRACE_PATH")
     async for message in query(prompt=f"Audit the repo at {repo}.", options=options):
+        if trace_path and is_dataclass(message) and type(message).__name__ in {
+            "AssistantMessage", "UserMessage", "ResultMessage"
+        }:
+            with Path(trace_path).open("a") as trace:
+                trace.write(json.dumps({"repo": str(repo),
+                                        "type": type(message).__name__,
+                                        "message": asdict(message)}, default=str) + "\n")
         if isinstance(message, ResultMessage):
             final = message
 
