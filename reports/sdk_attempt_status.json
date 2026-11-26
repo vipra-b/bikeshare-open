@@ -1,0 +1,12 @@
+{
+  "record_type": "runner_status_not_a_successful_sdk_report",
+  "outcome": "stopped_for_authorized_teammate_handoff",
+  "source_commit": "71e4dff",
+  "final_sdk_result": null,
+  "elapsed_minutes": 26.5,
+  "check_identity_calls": 0,
+  "pipeline_commands": 0,
+  "test_execution_commands": 2,
+  "child_process_cleanup": "no task-owned audit Python or Claude child remains",
+  "historical_artifact": "reports/audit.jsonl is the inherited hosted result, not a fresh continuation audit"
+}

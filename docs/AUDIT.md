@@ -36,6 +36,6 @@ For the confirmed joint submission, our plan is one shared human verdict. The as
 
 ## Final own-repository SDK run
 
-The final own-repository SDK audit is still running. The existing reports/audit.jsonl is the inherited hosted audit, not a completed result for this continuation. The current local audit must finish or be rerun by the teammate before this assignment item is complete.
+The final local own-repository SDK attempt was stopped for the authorized teammate handoff after approximately 26.5 minutes, with no final JSON/schema result. The existing reports/audit.jsonl remains the inherited hosted audit, not a completed result for this continuation. The teammate must complete this assignment item; actual partial execution and cleanup status are preserved in reports/sdk_execution_evidence.txt and reports/sdk_attempt_status.json.
 
-Actual SDK trace: 0 custom identity calls, 0 pipeline commands, and 1 pytest execution commands. See reports/sdk_execution_evidence.txt; execution is not inferred from the final conclusion.
+Actual SDK trace: 0 custom identity calls, 0 pipeline commands, and 2 test execution commands. See reports/sdk_execution_evidence.txt; execution is not inferred from the final conclusion.

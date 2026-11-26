@@ -1,7 +1,17 @@
-Actual own-repository SDK execution evidence. Frozen source 71e4dff.
-Custom check_identity calls: 0
-Pipeline execution commands: 0
-Pytest execution commands (collection excluded): 1
+Own SDK attempt stopped for authorized teammate handoff. No final schema result was produced.
+{
+  "record_type": "runner_status_not_a_successful_sdk_report",
+  "outcome": "stopped_for_authorized_teammate_handoff",
+  "source_commit": "71e4dff",
+  "final_sdk_result": null,
+  "elapsed_minutes": 26.5,
+  "check_identity_calls": 0,
+  "pipeline_commands": 0,
+  "test_execution_commands": 2,
+  "child_process_cleanup": "no task-owned audit Python or Claude child remains",
+  "historical_artifact": "reports/audit.jsonl is the inherited hosted result, not a fresh continuation audit"
+}
+Actual partial tool execution follows; these are not inferred from a final conclusion.
 
 TOOL Bash
 {
@@ -37,4 +47,11 @@ tests/test_split.py::test_no_overlapping_dates PASSED                    [100%]
 
 ============================== 19 passed in 2.69s ==============================
 
-This records actual tool calls, independently of the model’s final claims. A missing call is not represented as executed.
+TOOL Bash
+{
+  "command": "make test 2>&1 | head -50 || echo \"No Makefile, testing directly\"",
+  "description": "Run make test command"
+}
+python -m pytest tests/ -q
+...................                                                      [100%]
+19 passed in 2.60s
