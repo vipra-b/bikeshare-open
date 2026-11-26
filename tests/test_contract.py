@@ -4,9 +4,10 @@ import pytest
 from sklearn.metrics import r2_score
 
 from src.config import (DATE_COL, ENCODED_COLS, FORBIDDEN, LAG_WARMUP, RAW,
-                        RAW_FEATURE_COLS, REDUNDANT_CALENDAR_COLS, TARGET)
+                        RAW_FEATURE_COLS, RAW_SHA256, REDUNDANT_CALENDAR_COLS,
+                        TARGET)
 from src.features import build_features, feature_columns, reindex_to_calendar
-from src.ingest import load_raw
+from src.ingest import load_raw, raw_sha256
 from src.train import MODELS, temporal_split
 
 
@@ -73,3 +74,11 @@ def test_every_raw_column_is_classified():
     assert not unclassified, (
         f"unclassified raw columns {sorted(unclassified)}: add each to a set "
         "in src/config.py with the reason")
+
+
+def test_raw_data_is_unmodified():
+    """Raw data is immutable. The deny rules in .claude/settings.json stop
+    the Edit and Write tools only; `cp` from Bash gets past them and past the
+    PostToolUse hook. The pinned hash catches it however the file changed."""
+    assert raw_sha256() == RAW_SHA256, (
+        "data/raw/bike_daily.csv was modified; restore it with git checkout -- data/raw/")
