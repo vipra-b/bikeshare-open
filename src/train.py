@@ -14,8 +14,16 @@ nothing worth reporting. The booster is there because it fails, and the
 reason it fails is the headline result.
 
 Run: python -m src.train
+
+Exercise 4 (not part of `make all`): refit ridge and hgb on a transformed
+target and print VALIDATION scores only. Test is reported only with
+--touch-test, which is meant to be run once, at the end.
+    python -m src.train --target-transform ratio
 """
+import argparse
 import json
+
+import numpy as np
 
 import pandas as pd
 from sklearn.base import BaseEstimator, RegressorMixin
@@ -62,6 +70,39 @@ def temporal_split(df: pd.DataFrame):
     return train, valid, test
 
 
+# Exercise 4: target transforms. Each maps (y, X) -> z for fitting and
+# (zhat, X) -> yhat for scoring. Every input is a lag column, so each is
+# computable at prediction time.
+TRANSFORMS = {
+    # predict the ratio to the trailing 7-day mean: a level-free target
+    "ratio": (lambda y, X: y / X["cnt_roll_7"], lambda z, X: z * X["cnt_roll_7"]),
+    # predict the change from yesterday
+    "diff": (lambda y, X: y - X["cnt_lag_1"], lambda z, X: z + X["cnt_lag_1"]),
+    # log scale: compresses the range but does not remove the level
+    "log": (lambda y, X: np.log1p(y), lambda z, X: np.expm1(z)),
+}
+
+
+def score_transformed(name: str, touch_test: bool = False) -> dict:
+    fwd, inv = TRANSFORMS[name]
+    df = pd.read_parquet(PROCESSED)
+    cols = feature_columns(df)
+    train, valid, test = temporal_split(df)
+    parts = [("valid", valid)] + ([("test", test)] if touch_test else [])
+    out = {}
+    for model_name in ("ridge", "hgb"):
+        model = MODELS[model_name]
+        model.fit(train[cols], fwd(train[TARGET], train[cols]))
+        out[model_name] = {}
+        for split, part in parts:
+            pred = inv(model.predict(part[cols]), part[cols])
+            out[model_name][split] = {
+                "r2": round(float(r2_score(part[TARGET], pred)), 4),
+                "mae": round(float(mean_absolute_error(part[TARGET], pred)), 1),
+            }
+    return out
+
+
 def fit_and_score() -> dict:
     df = pd.read_parquet(PROCESSED)
     cols = feature_columns(df)
@@ -87,6 +128,15 @@ def fit_and_score() -> dict:
 
 
 if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--target-transform", choices=["none", *TRANSFORMS], default="none")
+    ap.add_argument("--touch-test", action="store_true")
+    args = ap.parse_args()
+    if args.target_transform != "none":
+        # Never writes reports/metrics.json: the committed file is untransformed.
+        print(json.dumps({args.target_transform: score_transformed(
+            args.target_transform, args.touch_test)}, indent=2))
+        raise SystemExit
     res = fit_and_score()
     METRICS.parent.mkdir(parents=True, exist_ok=True)
     METRICS.write_text(json.dumps(res, indent=2))
