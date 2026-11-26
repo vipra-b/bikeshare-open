@@ -390,7 +390,7 @@ feats =         dteday  instant  season  ...   cnt_roll_7 cnt_roll_std_7 innocen
 
     def test_no_feature_subset_restates_target(feats):
         """Renaming a leaked count must not defeat the forbidden-name gate.
-    
+
         Check fitted identities with an intercept, independently of column
         names, using all retained days. Single-column aliases or rescalings
         of cnt, casual, or registered, and combinations such as renamed
@@ -459,7 +459,7 @@ feats =         dteday  instant  season  ...   cnt_roll_7 cnt_roll_std_7 renamed
 
     def test_no_feature_subset_restates_target(feats):
         """Renaming a leaked count must not defeat the forbidden-name gate.
-    
+
         Check fitted identities with an intercept, independently of column
         names, using all retained days. Single-column aliases or rescalings
         of cnt, casual, or registered, and combinations such as renamed

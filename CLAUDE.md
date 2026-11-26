@@ -33,6 +33,8 @@ rides) from calendar, weather, and lagged-demand features.
   to hide.
 - Repeated smoke tests use validation. The inherited test scores were
   already exposed; do not claim a historically untouched test set.
+- Realized same-day weather makes these scores conditional. Operational
+  forecasting needs archived forecast-time weather or a new evaluation.
 
 ## Style
 - Standard library, pandas, scikit-learn only. No new dependencies
