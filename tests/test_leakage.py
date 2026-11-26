@@ -6,8 +6,10 @@ scores R^2 = 1.0 and looks brilliant while having learned nothing.
 """
 import pandas as pd
 import pytest
+import numpy as np
+from itertools import combinations
 
-from src.config import FORBIDDEN, TARGET
+from src.config import FORBIDDEN, LEAKAGE_COLS, TARGET
 from src.features import build_features, feature_columns
 from src.ingest import load_raw
 
@@ -29,6 +31,30 @@ def test_no_forbidden_features(feats):
     exactly the fault the Step 7 hook demonstrates."""
     cols = set(feature_columns(feats))
     assert not (cols & FORBIDDEN), f"forbidden columns in feature set: {cols & FORBIDDEN}"
+
+
+def test_no_feature_subset_restates_target(feats):
+    """Renaming a leaked count must not defeat the forbidden-name gate.
+
+    Check fitted identities with an intercept, independently of column
+    names, using all retained days. Single-column aliases or rescalings
+    of cnt, casual, or registered, and combinations such as renamed
+    casual + registered, must go red. A component alone is also leakage.
+    This does not establish the availability of arbitrary nonlinear inputs.
+    """
+    protected = sorted(LEAKAGE_COLS)
+    y = feats[protected].to_numpy(dtype=float)
+    for size in (1, 2, 3):
+        for subset in combinations(feature_columns(feats), size):
+            X = np.column_stack([feats[list(subset)].to_numpy(dtype=float),
+                                 np.ones(len(feats))])
+            coef, *_ = np.linalg.lstsq(X, y, rcond=None)
+            residuals = np.abs(X @ coef - y).max(axis=0)
+            identities = {name: float(residual) for name, residual
+                          in zip(protected, residuals) if residual < 1e-6}
+            assert not identities, (
+                f"feature subset {subset} restates target or components; "
+                f"max absolute residuals {identities}")
 
 
 def test_lags_are_true_calendar_lags(feats):

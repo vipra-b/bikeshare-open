@@ -49,8 +49,8 @@ from claude_agent_sdk import (
     {"csv_path": str, "target": str, "candidates": list},
 )
 async def check_identity(args: dict[str, Any]) -> dict[str, Any]:
-    df = pd.read_csv(args["csv_path"])
-    target = df[args["target"]].to_numpy(dtype=float)
+    path = Path(args["csv_path"])
+    df = pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
     cols = [c for c in args["candidates"] if c in df.columns and c != args["target"]]
 
     # Least squares with an intercept column, so `cnt = a*x + b` is caught
@@ -93,18 +93,23 @@ write this code and you have no stake in it passing.
 
 Check exactly four things:
   1. Target leakage: any feature that contains, restates, or derives from
-     the target. Use the check_identity tool on the processed feature
-     table rather than judging by column names.
+     the target at prediction date t. Strictly earlier target lags are
+     allowed. Use the check_identity tool on the processed feature
+     table rather than judging by column names. Pass the actual modelling
+     feature_columns list, not excluded columns retained for inspection.
   2. Temporal validity: splits by date not at random; every rolling or
      lag feature shifts before it aggregates; no transformer is fit on
      validation or test rows.
-  3. Baseline: a mean or naive-persistence baseline reported next to
-     every model score.
+  3. Baselines: both the mean and naive-persistence baselines reported
+     next to every model score.
   4. Reproducibility: the pipeline runs from a documented command and
      random seeds are fixed.
 
 Verify by reading files and running code. Do not accept a docstring or a
 README claim as evidence.
+Report only findings that change a number or invalidate a conclusion.
+Do not edit source or raw data, tune models, or invoke transformed
+--touch-test runs. Inspect the saved transformed output instead.
 
 Your final answer is a single JSON object matching the schema you were
 given. No prose around it.
@@ -142,10 +147,16 @@ REPORT_SCHEMA = {
 
 
 async def audit_repo(repo: Path) -> dict[str, Any]:
+    model = os.environ.get("AUDIT_MODEL", "bikeshare-coder")
+    # The local 9B model can otherwise spend minutes reasoning before its
+    # first tool call. These are supported SDK controls, not a smaller
+    # context window. Hosted overrides keep the SDK's normal defaults.
+    local_model = model == "bikeshare-coder"
     options = ClaudeAgentOptions(
         system_prompt=SYSTEM,
         cwd=str(repo),
         mcp_servers={"audit": auditor_tools},
+        tools=["Read", "Grep", "Glob", "Bash"],
         allowed_tools=[
             "Read",
             "Grep",
@@ -158,7 +169,9 @@ async def audit_repo(repo: Path) -> dict[str, Any]:
         # but has no Edit or Write to grant.
         permission_mode="default",
         max_turns=40,
-        model=os.environ.get("AUDIT_MODEL", "bikeshare-coder"),
+        model=model,
+        thinking={"type": "disabled"} if local_model else None,
+        effort="low" if local_model else None,
         output_format={"type": "json_schema", "schema": REPORT_SCHEMA},
     )
 

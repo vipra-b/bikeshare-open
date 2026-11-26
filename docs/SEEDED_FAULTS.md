@@ -360,3 +360,171 @@ FAILED tests/test_contract.py::test_every_raw_column_is_classified - Assertio...
 1 failed, 15 passed in 0.73s
 make: *** [test] Error 1
 ```
+
+## Continuation: an innocently renamed target added after raw ingestion
+
+The prior name/calendar checks and raw-column classification did not detect a source-engineered target alias. The 18-check run below uses the continuation’s validation smoke test and excludes only the new numerical identity test. A value-based test now checks all one-, two-, and three-feature affine subsets against cnt, casual, and registered (maximum residual below 1e-6). This covers renamed target components and direct aliases while the forbidden-name and raw-hash checks remain in place. It does not prove availability of arbitrary nonlinear features.
+
+Actual extra fault and verification output:
+
+```text
+Extra source-level fault: add out["innocent_alias"] = out[TARGET] immediately before build_features returns. Raw CSV and hash are unchanged.
+
+Mutation: out["innocent_alias"] = out[TARGET]
+$ python -m pytest tests/ -q -k not test_no_feature_subset_restates_target
+..................                                                       [100%]
+18 passed, 1 deselected in 13.90s
+
+[exit code: 0]
+
+$ python -m pytest tests/test_leakage.py::test_no_feature_subset_restates_target -q
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____________________ test_no_feature_subset_restates_target ____________________
+
+feats =         dteday  instant  season  ...   cnt_roll_7 cnt_roll_std_7 innocent_alias
+0   2011-01-10     10.0  WINTER  ...  ...        1796.0
+713 2012-12-31    731.0  WINTER  ...  1531.428571     887.135250         2729.0
+
+[714 rows x 30 columns]
+
+    def test_no_feature_subset_restates_target(feats):
+        """Renaming a leaked count must not defeat the forbidden-name gate.
+    
+        Check fitted identities with an intercept, independently of column
+        names, using all retained days. Single-column aliases or rescalings
+        of cnt, casual, or registered, and combinations such as renamed
+        casual + registered, must go red. A component alone is also leakage.
+        This does not establish the availability of arbitrary nonlinear inputs.
+        """
+        protected = sorted(LEAKAGE_COLS)
+        y = feats[protected].to_numpy(dtype=float)
+        for size in (1, 2, 3):
+            for subset in combinations(feature_columns(feats), size):
+                X = np.column_stack([feats[list(subset)].to_numpy(dtype=float),
+                                     np.ones(len(feats))])
+                coef, *_ = np.linalg.lstsq(X, y, rcond=None)
+                residuals = np.abs(X @ coef - y).max(axis=0)
+                identities = {name: float(residual) for name, residual
+                              in zip(protected, residuals) if residual < 1e-6}
+>               assert not identities, (
+                    f"feature subset {subset} restates target or components; "
+                    f"max absolute residuals {identities}")
+E               AssertionError: feature subset ('innocent_alias',) restates target or components; max absolute residuals {'cnt': 1.8189894035458565e-12}
+E               assert not {'cnt': 1.8189894035458565e-12}
+
+tests/test_leakage.py:55: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_leakage.py::test_no_feature_subset_restates_target - Assert...
+1 failed in 1.23s
+
+[exit code: 1]
+
+$ bash .claude/hooks/check_leakage.sh
+Leakage tests failed after editing /Users/kavyanpatel/Documents/Codex/2026-11-25/ok/work/bikeshare-open/src/features.py:
+        protected = sorted(LEAKAGE_COLS)
+        y = feats[protected].to_numpy(dtype=float)
+        for size in (1, 2, 3):
+            for subset in combinations(feature_columns(feats), size):
+                X = np.column_stack([feats[list(subset)].to_numpy(dtype=float),
+                                     np.ones(len(feats))])
+                coef, *_ = np.linalg.lstsq(X, y, rcond=None)
+                residuals = np.abs(X @ coef - y).max(axis=0)
+                identities = {name: float(residual) for name, residual
+                              in zip(protected, residuals) if residual < 1e-6}
+>               assert not identities, (
+                    f"feature subset {subset} restates target or components; "
+                    f"max absolute residuals {identities}")
+E               AssertionError: feature subset ('innocent_alias',) restates target or components; max absolute residuals {'cnt': 1.8189894035458565e-12}
+E               assert not {'cnt': 1.8189894035458565e-12}
+
+tests/test_leakage.py:55: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_leakage.py::test_no_feature_subset_restates_target - Assert...
+1 failed, 9 passed in 1.48s
+
+[exit code: 2]
+
+Mutation: out["renamed_component"] = out["casual"]
+$ python -m pytest tests/test_leakage.py::test_no_feature_subset_restates_target -q
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____________________ test_no_feature_subset_restates_target ____________________
+
+feats =         dteday  instant  season  ...   cnt_roll_7 cnt_roll_std_7 renamed_component
+0   2011-01-10     10.0  WINTER  .....      364.0
+713 2012-12-31    731.0  WINTER  ...  1531.428571     887.135250             439.0
+
+[714 rows x 30 columns]
+
+    def test_no_feature_subset_restates_target(feats):
+        """Renaming a leaked count must not defeat the forbidden-name gate.
+    
+        Check fitted identities with an intercept, independently of column
+        names, using all retained days. Single-column aliases or rescalings
+        of cnt, casual, or registered, and combinations such as renamed
+        casual + registered, must go red. A component alone is also leakage.
+        This does not establish the availability of arbitrary nonlinear inputs.
+        """
+        protected = sorted(LEAKAGE_COLS)
+        y = feats[protected].to_numpy(dtype=float)
+        for size in (1, 2, 3):
+            for subset in combinations(feature_columns(feats), size):
+                X = np.column_stack([feats[list(subset)].to_numpy(dtype=float),
+                                     np.ones(len(feats))])
+                coef, *_ = np.linalg.lstsq(X, y, rcond=None)
+                residuals = np.abs(X @ coef - y).max(axis=0)
+                identities = {name: float(residual) for name, residual
+                              in zip(protected, residuals) if residual < 1e-6}
+>               assert not identities, (
+                    f"feature subset {subset} restates target or components; "
+                    f"max absolute residuals {identities}")
+E               AssertionError: feature subset ('renamed_component',) restates target or components; max absolute residuals {'casual': 9.094947017729282e-13}
+E               assert not {'casual': 9.094947017729282e-13}
+
+tests/test_leakage.py:55: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_leakage.py::test_no_feature_subset_restates_target - Assert...
+1 failed in 1.16s
+
+[exit code: 1]
+
+$ bash .claude/hooks/check_leakage.sh
+Leakage tests failed after editing /Users/kavyanpatel/Documents/Codex/2026-11-25/ok/work/bikeshare-open/src/features.py:
+        protected = sorted(LEAKAGE_COLS)
+        y = feats[protected].to_numpy(dtype=float)
+        for size in (1, 2, 3):
+            for subset in combinations(feature_columns(feats), size):
+                X = np.column_stack([feats[list(subset)].to_numpy(dtype=float),
+                                     np.ones(len(feats))])
+                coef, *_ = np.linalg.lstsq(X, y, rcond=None)
+                residuals = np.abs(X @ coef - y).max(axis=0)
+                identities = {name: float(residual) for name, residual
+                              in zip(protected, residuals) if residual < 1e-6}
+>               assert not identities, (
+                    f"feature subset {subset} restates target or components; "
+                    f"max absolute residuals {identities}")
+E               AssertionError: feature subset ('renamed_component',) restates target or components; max absolute residuals {'casual': 9.094947017729282e-13}
+E               assert not {'casual': 9.094947017729282e-13}
+
+tests/test_leakage.py:55: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_leakage.py::test_no_feature_subset_restates_target - Assert...
+1 failed, 9 passed in 1.22s
+
+[exit code: 2]
+
+$ make test
+python -m pytest tests/ -q
+...................                                                      [100%]
+19 passed in 4.83s
+
+[exit code: 0]
+
+$ bash .claude/hooks/check_leakage.sh
+
+[exit code: 0]
+
+```
+
+The temporary source mutation was restored in a finally block. One implementation-and-verification cycle added the test; no model tuning or raw-data modification was performed. An earlier verification attempt was interrupted while its first pytest subprocess was stalled alongside local-model inference; that incomplete attempt established no pass/fail result.
