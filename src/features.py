@@ -73,7 +73,7 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     # If you add a longer lag, raise LAG_WARMUP in src/config.py.
     out["cnt_lag_1"] = out[TARGET].shift(1)
     out["cnt_lag_7"] = out[TARGET].shift(LAG_WARMUP)
-    out["cnt_roll_7"] = out[TARGET].rolling(LAG_WARMUP).mean()
+    out["cnt_roll_7"] = out[TARGET].shift(1).rolling(LAG_WARMUP).mean()
     # Volatility of the previous 7 days. Same window as cnt_roll_7, so it
     # needs no extra warm-up and LAG_WARMUP stays at 7.
     out["cnt_roll_std_7"] = out[TARGET].shift(1).rolling(LAG_WARMUP).std()
