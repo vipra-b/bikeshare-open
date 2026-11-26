@@ -9,6 +9,8 @@ rides) from calendar, weather, and lagged-demand features.
 - `make train` - fit models, write `reports/metrics.json`
 - `make test` - pytest; run this before claiming anything works
 - `make all` - the three pipeline stages in order
+- `python -m src.train --target-transform ratio` - validation-only comparison;
+  `--touch-test` was used for the frozen final run, never for another search
 - `/new-feature <name>` to add a predictor, `/seed-fault <fault>` to
   break the pipeline on purpose and record what catches it
 
@@ -29,6 +31,8 @@ rides) from calendar, weather, and lagged-demand features.
 - Report the mean baseline **and** the persistence baseline (yesterday's
   count) alongside every model. A negative R^2 is a finding, not a bug
   to hide.
+- Repeated smoke tests use validation. The inherited test scores were
+  already exposed; do not claim a historically untouched test set.
 
 ## Style
 - Standard library, pandas, scikit-learn only. No new dependencies

@@ -27,6 +27,7 @@ import numpy as np
 
 import pandas as pd
 from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.base import clone
 from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import Ridge
@@ -90,12 +91,15 @@ def score_transformed(name: str, touch_test: bool = False) -> dict:
     train, valid, test = temporal_split(df)
     parts = [("valid", valid)] + ([("test", test)] if touch_test else [])
     out = {}
-    for model_name in ("ridge", "hgb"):
-        model = MODELS[model_name]
-        model.fit(train[cols], fwd(train[TARGET], train[cols]))
+    for model_name, template in MODELS.items():
+        model = clone(template)
+        is_baseline = model_name.startswith("baseline_")
+        model.fit(train[cols], train[TARGET] if is_baseline else fwd(train[TARGET], train[cols]))
         out[model_name] = {}
         for split, part in parts:
-            pred = inv(model.predict(part[cols]), part[cols])
+            pred = model.predict(part[cols])
+            if not is_baseline:
+                pred = inv(pred, part[cols])
             out[model_name][split] = {
                 "r2": round(float(r2_score(part[TARGET], pred)), 4),
                 "mae": round(float(mean_absolute_error(part[TARGET], pred)), 1),
@@ -103,9 +107,9 @@ def score_transformed(name: str, touch_test: bool = False) -> dict:
     return out
 
 
-def fit_and_score() -> dict:
+def fit_and_score(exclude_features: tuple[str, ...] = ()) -> dict:
     df = pd.read_parquet(PROCESSED)
-    cols = feature_columns(df)
+    cols = [c for c in feature_columns(df) if c not in exclude_features]
     train, valid, test = temporal_split(df)
 
     results = {
@@ -115,7 +119,8 @@ def fit_and_score() -> dict:
         "n_valid": len(valid),
         "n_test": len(test),
     }
-    for name, model in MODELS.items():
+    for name, template in MODELS.items():
+        model = clone(template)
         model.fit(train[cols], train[TARGET])
         results[name] = {
             split: {
@@ -124,6 +129,24 @@ def fit_and_score() -> dict:
             }
             for split, part in [("valid", valid), ("test", test)]
         }
+    return results
+
+
+def comparison_metrics() -> dict:
+    """Freeze the chosen feature and reproduce both rows of its comparison.
+
+    Both versions use the same calendar rows, split, estimators and seeds.
+    The before version omits only the added seven-day volatility feature.
+    This is reporting a fixed comparison, not choosing features on test.
+    """
+    results = fit_and_score()
+    results["before_feature"] = fit_and_score(("cnt_roll_std_7",))
+    results["comparison"] = {
+        "added_feature": "cnt_roll_std_7",
+        "before_feature_source_commit": "f38a6d2",
+        "after_feature_source_commit": "c94572b",
+        "method": "Same retained rows and fixed models; before excludes only cnt_roll_std_7.",
+    }
     return results
 
 
@@ -137,7 +160,7 @@ if __name__ == "__main__":
         print(json.dumps({args.target_transform: score_transformed(
             args.target_transform, args.touch_test)}, indent=2))
         raise SystemExit
-    res = fit_and_score()
+    res = comparison_metrics()
     METRICS.parent.mkdir(parents=True, exist_ok=True)
     METRICS.write_text(json.dumps(res, indent=2))
     print(json.dumps({k: v for k, v in res.items() if k != "features"}, indent=2))
