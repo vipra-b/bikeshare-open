@@ -36,6 +36,18 @@ For the confirmed joint submission, our plan is one shared human verdict. The as
 
 ## Final own-repository SDK run
 
-The final local own-repository SDK attempt was stopped for the authorized teammate handoff after approximately 26.5 minutes, with no final JSON/schema result. The existing reports/audit.jsonl remains the inherited hosted audit, not a completed result for this continuation. The teammate must complete this assignment item; actual partial execution and cleanup status are preserved in reports/sdk_execution_evidence.txt and reports/sdk_attempt_status.json.
+The final own-repository SDK audit completed successfully against source commit `62898c5` using local `qwen3.5:9b-q4_K_M` (`bikeshare-coder`, 65536 context), in 17 turns and 34.4 minutes including SDK structured-output enforcement. The actual schema-valid result reports no leakage, valid temporal evaluation, both baselines, reproducibility, no findings, and high confidence. Its trace confirms `make all test` executed ingestion, feature generation, training and all 19 tests; the numerical identity tool checked exactly the 15 active features and found no identities. The SDK returned final JSON through its documented text fallback (structured_output was null); the saved row was independently validated against REPORT_SCHEMA. Regenerated metrics are unchanged. No transformed test evaluation was repeated.
 
-Actual SDK trace: 0 custom identity calls, 0 pipeline commands, and 2 test execution commands. See reports/sdk_execution_evidence.txt; execution is not inferred from the final conclusion.
+```json
+{
+  "repo": "/Users/kavyanpatel/Documents/Codex/2026-11-25/ok/work/bikeshare-open",
+  "leakage": "none",
+  "temporal_ok": true,
+  "baseline_reported": true,
+  "reproducible": true,
+  "findings": [],
+  "confidence": "high"
+}
+```
+
+Actual execution evidence: `reports/sdk_final_execution.txt`; selected tool/result trace: `reports/sdk_final_trace.jsonl`; runtime metadata: `reports/sdk_final_status.json`. The earlier stopped attempt remains recorded in `reports/sdk_attempt_status.json`; `reports/audit.jsonl` now contains the genuine completed continuation result. The shared human verdict above remains pending.

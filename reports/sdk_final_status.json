@@ -1,0 +1,17 @@
+{
+  "source_commit": "62898c5a6502551c4a871a6c935599fb055c2d86",
+  "model": "qwen3.5:9b-q4_K_M via bikeshare-coder",
+  "context": 65536,
+  "endpoint": "http://localhost:11434",
+  "thinking": "disabled",
+  "effort": "low",
+  "status": "completed",
+  "duration_ms": 2064692,
+  "num_turns": 17,
+  "identity_calls": 1,
+  "pipeline_and_test_commands": 1,
+  "tests_passed": 19,
+  "schema_validated": true,
+  "result_parse_mode": "final_text_json_fallback",
+  "selected_trace": "reports/sdk_final_trace.jsonl"
+}
